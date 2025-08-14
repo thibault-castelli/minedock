@@ -1,21 +1,34 @@
-﻿import type { AxiosError } from 'axios';
+﻿import axios, { AxiosError } from 'axios';
 import { toast } from 'vue-sonner';
 
-interface NestJsError {
+class NestJsError {
   message: string;
   statusCode: number;
+  error: string;
 }
 
-const handleAxiosError = (error: AxiosError) => {
-  const nestJsError = error.response?.data as NestJsError;
-  if (!nestJsError) {
-    // Should never happen, but just in case
-    console.error(`Status: ${error.status}\nMessage: ${error.message}`);
-    toast.error(error.message);
+const apiClient = axios.create({
+  baseURL: 'http://localhost:3057',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+const handleAxiosError = (error: any) => {
+  let nestJsError;
+  if (error instanceof AxiosError) {
+    nestJsError = error.response?.data as NestJsError;
+  } else if (error instanceof NestJsError) {
+    nestJsError = error as NestJsError;
   } else {
-    console.error(`Status: ${nestJsError.statusCode}\nMessage: ${nestJsError.message}`);
-    toast.error(nestJsError.message);
+    console.error(`Unexpected error type: ${error}`);
+    return;
   }
+
+  console.error(
+    `Status: ${nestJsError.statusCode}\nMessage: ${nestJsError.message}\nError: ${nestJsError.error}`,
+  );
+  toast.error(Array.isArray(nestJsError.message) ? nestJsError.error : nestJsError.message);
 };
 
-export { handleAxiosError };
+export { apiClient, handleAxiosError };

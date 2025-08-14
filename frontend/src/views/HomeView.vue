@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import type { MinecraftDocker } from '@/types/minecraftDocker.ts';
-import { getAllMinecraftDocker } from '@/services/minecraftDockerService.ts';
+import { deleteMinecraftDocker, getAllMinecraftDocker } from '@/services/minecraftDockerService.ts';
 import {
   Select,
   SelectContent,
@@ -9,21 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { handleAxiosError } from '@/utils/axiosUtils.ts';
 import type { AxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
-import { Plus, Pen, Trash, Rocket, StopCircle } from 'lucide-vue-next';
-import TableVerticalDivider from '@/components/ui/table/TableVerticalDivider.vue';
+import { Plus, Pen, Rocket } from 'lucide-vue-next';
+import CreateEditMinecraftDockerForm from '@/components/minecraftDocker/CreateEditMinecraftDockerForm.vue';
+import { toast } from 'vue-sonner';
+import MinecraftDockerTable from '@/components/minecraftDocker/MinecraftDockerTable.vue';
+import ConfirmDeleteDialog from '@/components/dialogs/ConfirmDeleteDialog.vue';
+import FormDialog from '@/components/dialogs/FormDialog.vue';
 
 const minecraftDockers = ref<MinecraftDocker[] | undefined>(undefined);
 const selectedMinecraftDockerId = ref<number>(-1);
@@ -35,6 +30,10 @@ const selectedMinecraftDocker = computed(
     ),
 );
 
+const minecraftDockerSelectKey = ref<number>(0);
+const createDialog = ref<typeof FormDialog | null>(null);
+const editDialog = ref<typeof FormDialog | null>(null);
+
 onMounted(async () => {
   try {
     minecraftDockers.value = await getAllMinecraftDocker();
@@ -42,9 +41,63 @@ onMounted(async () => {
     handleAxiosError(error as AxiosError);
   }
 
-  if (minecraftDockers.value && minecraftDockers.value.length > 0)
-    selectedMinecraftDockerId.value = minecraftDockers.value[0].id;
+  const atLeastOneMinecraftDocker = minecraftDockers.value && minecraftDockers.value.length > 0;
+  if (atLeastOneMinecraftDocker) selectedMinecraftDockerId.value = minecraftDockers.value![0].id;
 });
+
+const onMinecraftDockerCreate = (newMinecraftDocker: MinecraftDocker) => {
+  minecraftDockers.value
+    ? minecraftDockers.value.push(newMinecraftDocker)
+    : (minecraftDockers.value = [newMinecraftDocker]);
+
+  createDialog.value!.open = false;
+  toast.success('Minecraft Docker created with success');
+};
+
+const onMinecraftDockerUpdate = (
+  updatedMinecraftDockerIndex: number,
+  updatedMinecraftDocker: MinecraftDocker,
+) => {
+  minecraftDockers.value![updatedMinecraftDockerIndex] = updatedMinecraftDocker;
+
+  editDialog.value!.open = false;
+  minecraftDockerSelectKey.value++;
+  toast.success('Minecraft Docker updated with success');
+};
+
+const onMinecraftDockerCreateOrUpdate = (minecraftDocker: MinecraftDocker) => {
+  const updatedMinecraftDockerIndex = minecraftDockers.value?.findIndex(
+    (md) => md.id === minecraftDocker.id,
+  );
+  const isUpdating =
+    updatedMinecraftDockerIndex !== undefined && updatedMinecraftDockerIndex !== -1;
+
+  if (isUpdating) {
+    onMinecraftDockerUpdate(updatedMinecraftDockerIndex, minecraftDocker);
+  } else {
+    onMinecraftDockerCreate(minecraftDocker);
+  }
+
+  selectedMinecraftDockerId.value = minecraftDocker.id;
+};
+
+const deleteSelectedMinecraftDocker = async () => {
+  if (!minecraftDockers.value || !selectedMinecraftDockerId.value) return;
+
+  try {
+    await deleteMinecraftDocker(selectedMinecraftDockerId.value);
+
+    minecraftDockers.value = minecraftDockers.value.filter(
+      (minecraftDocker) => minecraftDocker.id !== selectedMinecraftDockerId.value,
+    );
+    selectedMinecraftDockerId.value =
+      minecraftDockers.value.length > 0 ? minecraftDockers.value[0].id : -1;
+
+    toast.success('Minecraft Docker deleted with success');
+  } catch (error) {
+    handleAxiosError(error);
+  }
+};
 </script>
 
 <template>
@@ -52,7 +105,11 @@ onMounted(async () => {
 
   <section v-if="minecraftDockers" class="space-y-4">
     <div class="flex gap-3">
-      <Select v-model="selectedMinecraftDockerId">
+      <Select
+        v-model="selectedMinecraftDockerId"
+        :disabled="!minecraftDockers || minecraftDockers.length === 0"
+        :key="minecraftDockerSelectKey"
+      >
         <SelectTrigger class="w-full">
           <SelectValue placeholder="Select a minecraft docker" />
         </SelectTrigger>
@@ -74,65 +131,49 @@ onMounted(async () => {
         </Tooltip>
       </TooltipProvider>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger>
-            <Button><Plus /></Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Create Minecraft Docker</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <FormDialog
+        title="Create Minecraft Docker"
+        description="Create your Minecraft Docker to fit your needs"
+        tooltip="Create Minecraft Docker"
+        ref="createDialog"
+      >
+        <template v-slot:button-icon><Plus /></template>
+        <template v-slot:form>
+          <CreateEditMinecraftDockerForm
+            :minecraft-docker="undefined"
+            @on-submit-success="onMinecraftDockerCreateOrUpdate"
+          />
+        </template>
+      </FormDialog>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger>
-            <Button :disabled="!selectedMinecraftDocker"><Pen /></Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Edit Selected Minecraft Docker</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <FormDialog
+        title="Edit Minecraft Docker"
+        description="Edit your Minecraft Docker to fit your needs"
+        tooltip="Edit Minecraft Docker"
+        ref="editDialog"
+      >
+        <template v-slot:button-icon><Pen /></template>
+        <template v-slot:form>
+          <CreateEditMinecraftDockerForm
+            :minecraft-docker="selectedMinecraftDocker"
+            @on-submit-success="onMinecraftDockerCreateOrUpdate"
+          />
+        </template>
+      </FormDialog>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger>
-            <Button variant="destructive" :disabled="!selectedMinecraftDocker"><Trash /></Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Delete Selected Minecraft Docker</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <ConfirmDeleteDialog
+        title="Delete Minecraft Docker"
+        :description="`Are you sure you want to delete ${selectedMinecraftDocker?.name} Minecraft Docker?`"
+        tooltip="Delete Selected Minecraft Docker"
+        :is-button-disabled="!selectedMinecraftDocker || minecraftDockers.length < 1"
+        @on-delete="deleteSelectedMinecraftDocker"
+      />
     </div>
 
-    <Table v-if="selectedMinecraftDocker" class="border">
-      <TableCaption>Selected Minecraft Docker information.</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableVerticalDivider />
-          <TableCell>
-            {{ selectedMinecraftDocker.name }}
-          </TableCell>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <TableRow>
-          <TableHead>Memory</TableHead>
-          <TableVerticalDivider />
-          <TableCell>{{ selectedMinecraftDocker.memory }} GB</TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
-    <p v-else>Please select a minecraft docker to display its information.</p>
+    <MinecraftDockerTable :selected-minecraft-docker="selectedMinecraftDocker" />
   </section>
 
-  <p v-if="minecraftDockers && minecraftDockers.length === 0">
+  <p v-if="minecraftDockers && minecraftDockers.length === 0" class="mt-3 italic">
     You don't seem to have a minecraft docker. Please create one to display its information.
   </p>
 </template>
-
-<style scoped></style>

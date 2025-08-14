@@ -4,7 +4,7 @@ import 'vue-sonner/style.css';
 </script>
 
 <template>
-  <Toaster rich-colors />
+  <Toaster rich-colors close-button />
 
   <main class="container mx-auto p-4 max-w-[1200px]">
     <RouterView />
