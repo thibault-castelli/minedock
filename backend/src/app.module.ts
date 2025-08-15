@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MinecraftDockerModule } from './minecraftDocker/minecraftDocker.module';
+import { DockerModule } from './docker/docker.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { MinecraftDockerModule } from './minecraftDocker/minecraftDocker.module'
       synchronize: true,
     }),
     MinecraftDockerModule,
+    DockerModule,
   ],
   controllers: [],
   providers: [],
