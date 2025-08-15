@@ -18,6 +18,7 @@ import type { MinecraftDocker } from '@/types/minecraftDocker.ts';
 import { deleteMinecraftDocker, getAllMinecraftDocker } from '@/services/minecraftDockerService.ts';
 import { handleAxiosError } from '@/utils/axiosUtils.ts';
 import { toast } from 'vue-sonner';
+import { isDockerRunning } from '@/services/dockerService.ts';
 
 const minecraftDockers = ref<MinecraftDocker[] | undefined>(undefined);
 const selectedMinecraftDockerId = ref<number>(-1);
@@ -97,6 +98,18 @@ const deleteSelectedMinecraftDocker = async () => {
     handleAxiosError(error);
   }
 };
+
+const startMinecraftDocker = async () => {
+  try {
+    const canStartMinecraftDocker = await isDockerRunning();
+    if (!canStartMinecraftDocker) {
+      toast.warning('Please start Docker before starting your Minecraft Docker');
+      return;
+    }
+  } catch (error) {
+    handleAxiosError(error);
+  }
+};
 </script>
 
 <template>
@@ -120,7 +133,12 @@ const deleteSelectedMinecraftDocker = async () => {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger>
-            <Button variant="outline" :disabled="!selectedMinecraftDocker"><Rocket /></Button>
+            <Button
+              variant="outline"
+              :disabled="!selectedMinecraftDocker"
+              @click="startMinecraftDocker"
+              ><Rocket
+            /></Button>
           </TooltipTrigger>
           <TooltipContent>
             <p>Start Minecraft Docker</p>
