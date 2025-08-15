@@ -56,9 +56,7 @@ const deleteMinecraftDocker = async (id: number): Promise<boolean> => {
 
 const buildAndRunMinecraftDocker = async (id: number): Promise<boolean> => {
   try {
-    await apiClient.post<{ success: boolean }>(
-      minecraftDockerEndpoint + '/build-and-run/' + id.toString(),
-    );
+    await apiClient.post(minecraftDockerEndpoint + '/build-and-run/' + id.toString());
     return true;
   } catch (error) {
     handleAxiosError(error);
@@ -68,10 +66,8 @@ const buildAndRunMinecraftDocker = async (id: number): Promise<boolean> => {
 
 const stopMinecraftDocker = async (id: number): Promise<boolean> => {
   try {
-    const response = await apiClient.post<{ success: boolean }>(
-      minecraftDockerEndpoint + '/stop/' + id.toString(),
-    );
-    return response.data.success;
+    await apiClient.post(minecraftDockerEndpoint + '/stop/' + id.toString());
+    return true;
   } catch (error) {
     handleAxiosError(error);
     return false;

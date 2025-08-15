@@ -10,6 +10,7 @@ import { CreateUpdateMinecraftDockerDto } from './dtos/CreateUpdateMinecraftDock
 import { join } from 'path';
 import * as fs from 'node:fs';
 import { execSync } from 'child_process';
+import { createDirectoryIfNotFound } from '../utils/fileUtils';
 
 @Injectable()
 export class MinecraftDockerService {
@@ -29,37 +30,13 @@ export class MinecraftDockerService {
     return this.minecraftDockerRepository.save(minecraftDocker);
   }
 
-  async buildAndRun(id: number) {
-    const minecraftDocker = await this.findOne(id);
-    const dockerFilePath = join(this.dockerFilesFolder, id.toString());
-
-    if (!fs.existsSync(this.dockerFilesFolder))
-      fs.mkdirSync(this.dockerFilesFolder);
-
-    if (!fs.existsSync(dockerFilePath)) fs.mkdirSync(dockerFilePath);
-
-    const dockerComposeContent = `
-    services:
-      mc:
-        image: itzg/minecraft-server
-        tty: true
-        stdin_open: true
-        ports:
-          - "25565:25565"
-        environment:
-          EULA: "TRUE"
-          MEMORY: ${minecraftDocker.memory}G
-    `;
-
-    fs.writeFileSync(join(dockerFilePath, 'compose.yml'), dockerComposeContent);
+  async buildAndRun(id: number): Promise<void> {
+    await this.buildMinecraftDocker(id);
 
     try {
       execSync('docker compose up -d', {
         cwd: join(this.dockerFilesFolder, id.toString()),
       });
-
-      minecraftDocker.isRunning = true;
-      await this.minecraftDockerRepository.update(id, minecraftDocker);
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException(
@@ -67,10 +44,10 @@ export class MinecraftDockerService {
       );
     }
 
-    return minecraftDocker;
+    await this.updateMinecraftDockerRunningStatus(id, true);
   }
 
-  async stop(id: number) {
+  async stop(id: number): Promise<void> {
     const dockerFilePath = join(this.dockerFilesFolder, id.toString());
     if (!fs.existsSync(dockerFilePath))
       throw new NotFoundException(`MinecraftDocker with ID ${id} not found`);
@@ -79,16 +56,14 @@ export class MinecraftDockerService {
       execSync('docker compose stop', {
         cwd: dockerFilePath,
       });
-
-      const minecraftDocker = await this.findOne(id);
-      minecraftDocker.isRunning = false;
-      await this.minecraftDockerRepository.update(id, minecraftDocker);
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException(
         'Server stop failed. Please check if your Docker Desktop is running.',
       );
     }
+
+    await this.updateMinecraftDockerRunningStatus(id, false);
   }
 
   findAll(): Promise<MinecraftDocker[]> {
@@ -120,6 +95,38 @@ export class MinecraftDockerService {
   }
 
   async remove(id: number): Promise<void> {
-    await this.minecraftDockerRepository.delete(id);
+    await this.minecraftDockerRepository.softDelete(id);
+  }
+
+  private async buildMinecraftDocker(id: number): Promise<void> {
+    const minecraftDocker = await this.findOne(id);
+    const dockerFilePath = join(this.dockerFilesFolder, id.toString());
+
+    createDirectoryIfNotFound(this.dockerFilesFolder);
+    createDirectoryIfNotFound(dockerFilePath);
+
+    const dockerComposeContent = `
+    services:
+      mc:
+        image: itzg/minecraft-server
+        tty: true
+        stdin_open: true
+        ports:
+          - "25565:25565"
+        environment:
+          EULA: "TRUE"
+          MEMORY: ${minecraftDocker.memory}G
+    `;
+
+    fs.writeFileSync(join(dockerFilePath, 'compose.yml'), dockerComposeContent);
+  }
+
+  private async updateMinecraftDockerRunningStatus(
+    id: number,
+    isRunning: boolean,
+  ): Promise<void> {
+    const minecraftDocker = await this.findOne(id);
+    minecraftDocker.isRunning = isRunning;
+    await this.minecraftDockerRepository.update(id, minecraftDocker);
   }
 }

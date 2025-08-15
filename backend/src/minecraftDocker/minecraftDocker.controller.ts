@@ -27,22 +27,17 @@ export class MinecraftDockerController {
   }
 
   @Post('build-and-run/:id')
-  async buildAndRunMinecraftServer(@Param('id', ParseIntPipe) id: number) {
-    const result = await this.minecraftDockerService.buildAndRun(id);
-    return {
-      success: true,
-      message: 'Minecraft server built and running',
-      data: result,
-    };
+  async buildAndRunMinecraftServer(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<void> {
+    return await this.minecraftDockerService.buildAndRun(id);
   }
 
   @Post('stop/:id')
-  async stopMinecraftServer(@Param('id', ParseIntPipe) id: number) {
-    await this.minecraftDockerService.stop(id);
-    return {
-      success: true,
-      message: 'Minecraft server stopped',
-    };
+  async stopMinecraftServer(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<void> {
+    return await this.minecraftDockerService.stop(id);
   }
 
   @Get()
