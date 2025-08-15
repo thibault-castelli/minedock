@@ -7,8 +7,6 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createMinecraftDocker, updateMinecraftDocker } from '@/services/minecraftDockerService.ts';
-import { handleAxiosError } from '@/utils/axiosUtils.ts';
-import type { AxiosError } from 'axios';
 
 interface Props {
   minecraftDocker: MinecraftDocker | undefined;
@@ -16,7 +14,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  onSubmitSuccess: [minecraftDocker: MinecraftDocker];
+  onSubmitSuccess: [minecraftDocker: MinecraftDocker, isCreated: boolean];
 }>();
 
 const isCreationMode = props.minecraftDocker === undefined;
@@ -25,6 +23,7 @@ const createDefaultMinecraftDocker = (): MinecraftDocker => {
   return {
     id: 0,
     name: 'Default Minecraft Docker',
+    isRunning: false,
     memory: 4,
   };
 };
@@ -42,19 +41,19 @@ const form = useForm({
 });
 
 const onSubmit = form.handleSubmit(async (values) => {
-  try {
-    if (isCreationMode) {
-      const createdMinecraftDocker = await createMinecraftDocker(values as MinecraftDocker);
-      emit('onSubmitSuccess', createdMinecraftDocker);
-    } else {
-      const updatedMinecraftDocker = await updateMinecraftDocker(
-        props.minecraftDocker.id,
-        values as MinecraftDocker,
-      );
-      emit('onSubmitSuccess', updatedMinecraftDocker);
-    }
-  } catch (error) {
-    handleAxiosError(error as AxiosError);
+  if (isCreationMode) {
+    const createdMinecraftDocker = await createMinecraftDocker(values as MinecraftDocker);
+    if (!createdMinecraftDocker) return;
+
+    emit('onSubmitSuccess', createdMinecraftDocker, isCreationMode);
+  } else {
+    const updatedMinecraftDocker = await updateMinecraftDocker(
+      props.minecraftDocker.id,
+      values as MinecraftDocker,
+    );
+    if (!updatedMinecraftDocker) return;
+
+    emit('onSubmitSuccess', updatedMinecraftDocker, isCreationMode);
   }
 });
 </script>

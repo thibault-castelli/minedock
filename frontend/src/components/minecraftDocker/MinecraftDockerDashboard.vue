@@ -14,101 +14,69 @@ import CreateEditMinecraftDockerForm from '@/components/minecraftDocker/CreateEd
 import { computed, onMounted, ref } from 'vue';
 import type { MinecraftDocker } from '@/types/minecraftDocker.ts';
 import { deleteMinecraftDocker, getAllMinecraftDocker } from '@/services/minecraftDockerService.ts';
-import { handleAxiosError } from '@/utils/axiosUtils.ts';
 import { toast } from 'vue-sonner';
 import StartStopMinecraftDockerButton from '@/components/minecraftDocker/StartStopMinecraftDockerButton.vue';
 
-const minecraftDockers = ref<MinecraftDocker[] | undefined>(undefined);
+const minecraftDockers = ref<MinecraftDocker[]>([]);
 const selectedMinecraftDockerId = ref<number>(-1);
-const selectedMinecraftDocker = computed(
-  () =>
-    minecraftDockers.value &&
-    minecraftDockers.value.find(
-      (minecraftDocker) => minecraftDocker.id === selectedMinecraftDockerId.value,
-    ),
+const selectedMinecraftDocker = computed(() =>
+  minecraftDockers.value.find(
+    (minecraftDocker) => minecraftDocker.id === selectedMinecraftDockerId.value,
+  ),
 );
 
 const minecraftDockerSelectKey = ref<number>(0);
 const createDialog = ref<typeof FormDialog | null>(null);
 const editDialog = ref<typeof FormDialog | null>(null);
 
-try {
-  minecraftDockers.value = await getAllMinecraftDocker();
-} catch (error) {
-  handleAxiosError(error);
-}
+minecraftDockers.value = await getAllMinecraftDocker();
 
 onMounted(async () => {
-  const atLeastOneMinecraftDocker = minecraftDockers.value && minecraftDockers.value.length > 0;
-  if (atLeastOneMinecraftDocker) selectedMinecraftDockerId.value = minecraftDockers.value![0].id;
+  if (minecraftDockers.value.length > 0)
+    selectedMinecraftDockerId.value = minecraftDockers.value![0].id;
 });
 
-const onMinecraftDockerCreate = (newMinecraftDocker: MinecraftDocker) => {
-  minecraftDockers.value
-    ? minecraftDockers.value.push(newMinecraftDocker)
-    : (minecraftDockers.value = [newMinecraftDocker]);
-
-  createDialog.value!.open = false;
-  toast.success('Minecraft Docker created with success');
+const refreshMinecraftDockers = async () => {
+  minecraftDockers.value = await getAllMinecraftDocker();
 };
 
-const onMinecraftDockerUpdate = (
-  updatedMinecraftDockerIndex: number,
-  updatedMinecraftDocker: MinecraftDocker,
+const onMinecraftDockerCreateOrUpdate = async (
+  minecraftDocker: MinecraftDocker,
+  isCreated: boolean,
 ) => {
-  minecraftDockers.value![updatedMinecraftDockerIndex] = updatedMinecraftDocker;
-
-  editDialog.value!.open = false;
-  minecraftDockerSelectKey.value++;
-  toast.success('Minecraft Docker updated with success');
-};
-
-const onMinecraftDockerCreateOrUpdate = (minecraftDocker: MinecraftDocker) => {
-  const updatedMinecraftDockerIndex = minecraftDockers.value?.findIndex(
-    (md) => md.id === minecraftDocker.id,
-  );
-  const isUpdating =
-    updatedMinecraftDockerIndex !== undefined && updatedMinecraftDockerIndex !== -1;
-
-  if (isUpdating) {
-    onMinecraftDockerUpdate(updatedMinecraftDockerIndex, minecraftDocker);
-  } else {
-    onMinecraftDockerCreate(minecraftDocker);
-  }
-
+  minecraftDockers.value = await getAllMinecraftDocker();
   selectedMinecraftDockerId.value = minecraftDocker.id;
+
+  if (isCreated) {
+    createDialog.value!.open = false;
+    toast.success('Minecraft Docker created with success');
+  } else {
+    editDialog.value!.open = false;
+    minecraftDockerSelectKey.value++;
+    toast.success('Minecraft Docker updated with success');
+  }
 };
 
 const deleteSelectedMinecraftDocker = async () => {
-  if (!minecraftDockers.value || !selectedMinecraftDockerId.value) return;
+  if (selectedMinecraftDockerId.value <= 0) return;
 
-  try {
-    await deleteMinecraftDocker(selectedMinecraftDockerId.value);
+  const deleteSuccess = await deleteMinecraftDocker(selectedMinecraftDockerId.value);
+  if (!deleteSuccess) return;
 
-    minecraftDockers.value = minecraftDockers.value.filter(
-      (minecraftDocker) => minecraftDocker.id !== selectedMinecraftDockerId.value,
-    );
-    selectedMinecraftDockerId.value =
-      minecraftDockers.value.length > 0 ? minecraftDockers.value[0].id : -1;
+  minecraftDockers.value = await getAllMinecraftDocker();
+  selectedMinecraftDockerId.value =
+    minecraftDockers.value.length > 0 ? minecraftDockers.value[0].id : -1;
 
-    toast.success('Minecraft Docker deleted with success');
-  } catch (error) {
-    handleAxiosError(error);
-  }
-};
-
-const updateSelectedMinecraftDockerRunningStatus = (isRunning: boolean) => {
-  if (!selectedMinecraftDocker.value) return;
-  selectedMinecraftDocker.value.isRunning = isRunning;
+  toast.success('Minecraft Docker deleted with success');
 };
 </script>
 
 <template>
-  <section v-if="minecraftDockers" class="space-y-4">
+  <section class="space-y-4">
     <div class="flex gap-3">
       <Select
         v-model="selectedMinecraftDockerId"
-        :disabled="!minecraftDockers || minecraftDockers.length === 0"
+        :disabled="minecraftDockers.length === 0"
         :key="minecraftDockerSelectKey"
       >
         <SelectTrigger class="w-full">
@@ -124,7 +92,7 @@ const updateSelectedMinecraftDockerRunningStatus = (isRunning: boolean) => {
       <StartStopMinecraftDockerButton
         :minecraft-docker-id="selectedMinecraftDockerId"
         :is-minecraft-docker-running="selectedMinecraftDocker?.isRunning"
-        @update-minecraft-docker-running-status="updateSelectedMinecraftDockerRunningStatus"
+        @on-minecraft-docker-start-or-stop="refreshMinecraftDockers"
       />
 
       <FormDialog
@@ -173,6 +141,4 @@ const updateSelectedMinecraftDockerRunningStatus = (isRunning: boolean) => {
       You don't seem to have a minecraft docker. Please create one to display its information.
     </p>
   </section>
-
-  <p v-else>An unexpected error happened, please try again later.</p>
 </template>

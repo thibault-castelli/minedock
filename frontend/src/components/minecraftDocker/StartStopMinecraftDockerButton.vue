@@ -8,58 +8,50 @@ import {
   buildAndRunMinecraftDocker,
   stopMinecraftDocker,
 } from '@/services/minecraftDockerService.ts';
-import { handleAxiosError } from '@/utils/axiosUtils.ts';
 
 interface Props {
-  minecraftDockerId: number | undefined;
+  minecraftDockerId: number;
   isMinecraftDockerRunning: boolean | undefined;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  updateMinecraftDockerRunningStatus: [isRunning: boolean];
+  onMinecraftDockerStartOrStop: [];
 }>();
 
 const buildAndRunSelectedMinecraftDocker = async () => {
-  if (!props.minecraftDockerId) {
+  if (props.minecraftDockerId <= 0) {
     toast.warning('Please select a Minecraft Docker');
     return;
   }
 
   toast.info('Starting Minecraft Docker...');
 
-  try {
-    const canStartMinecraftDocker = await isDockerRunning();
-    if (!canStartMinecraftDocker) {
-      toast.warning('Please start Docker before starting your Minecraft Docker');
-      return;
-    }
-    const success = await buildAndRunMinecraftDocker(props.minecraftDockerId);
-    if (success) {
-      emit('updateMinecraftDockerRunningStatus', true);
-      toast.success('Minecraft Docker started successfully');
-    }
-  } catch (error) {
-    handleAxiosError(error);
+  const canStartMinecraftDocker = await isDockerRunning();
+  if (!canStartMinecraftDocker) {
+    toast.warning('Please start Docker before starting your Minecraft Docker');
+    return;
+  }
+
+  const buildSuccess = await buildAndRunMinecraftDocker(props.minecraftDockerId);
+  if (buildSuccess) {
+    emit('onMinecraftDockerStartOrStop');
+    toast.success('Minecraft Docker started successfully');
   }
 };
 
 const stopSelectedMinecraftDocker = async () => {
-  if (!props.minecraftDockerId) {
+  if (props.minecraftDockerId <= 0) {
     toast.warning('Please select a Minecraft Docker');
     return;
   }
 
   toast.info('Stopping Minecraft Docker...');
 
-  try {
-    const success = await stopMinecraftDocker(props.minecraftDockerId);
-    if (success) {
-      emit('updateMinecraftDockerRunningStatus', false);
-      toast.success('Minecraft Docker stopped successfully');
-    }
-  } catch (error) {
-    handleAxiosError(error);
+  const stopSuccess = await stopMinecraftDocker(props.minecraftDockerId);
+  if (stopSuccess) {
+    emit('onMinecraftDockerStartOrStop');
+    toast.success('Minecraft Docker stopped successfully');
   }
 };
 </script>
@@ -70,7 +62,7 @@ const stopSelectedMinecraftDocker = async () => {
       <TooltipTrigger>
         <Button
           variant="outline"
-          :disabled="!props.minecraftDockerId"
+          :disabled="props.minecraftDockerId <= 0"
           @click="
             () =>
               props.isMinecraftDockerRunning
