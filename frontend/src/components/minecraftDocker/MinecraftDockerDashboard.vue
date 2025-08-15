@@ -1,6 +1,5 @@
 ﻿<script setup lang="ts">
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Pen, Plus, Rocket } from 'lucide-vue-next';
+import { Pen, Plus } from 'lucide-vue-next';
 import {
   Select,
   SelectContent,
@@ -9,7 +8,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import ConfirmDeleteDialog from '@/components/dialogs/ConfirmDeleteDialog.vue';
-import { Button } from '@/components/ui/button';
 import FormDialog from '@/components/dialogs/FormDialog.vue';
 import MinecraftDockerTable from '@/components/minecraftDocker/MinecraftDockerTable.vue';
 import CreateEditMinecraftDockerForm from '@/components/minecraftDocker/CreateEditMinecraftDockerForm.vue';
@@ -18,7 +16,7 @@ import type { MinecraftDocker } from '@/types/minecraftDocker.ts';
 import { deleteMinecraftDocker, getAllMinecraftDocker } from '@/services/minecraftDockerService.ts';
 import { handleAxiosError } from '@/utils/axiosUtils.ts';
 import { toast } from 'vue-sonner';
-import { isDockerRunning } from '@/services/dockerService.ts';
+import StartStopMinecraftDockerButton from '@/components/minecraftDocker/StartStopMinecraftDockerButton.vue';
 
 const minecraftDockers = ref<MinecraftDocker[] | undefined>(undefined);
 const selectedMinecraftDockerId = ref<number>(-1);
@@ -99,16 +97,9 @@ const deleteSelectedMinecraftDocker = async () => {
   }
 };
 
-const startMinecraftDocker = async () => {
-  try {
-    const canStartMinecraftDocker = await isDockerRunning();
-    if (!canStartMinecraftDocker) {
-      toast.warning('Please start Docker before starting your Minecraft Docker');
-      return;
-    }
-  } catch (error) {
-    handleAxiosError(error);
-  }
+const updateSelectedMinecraftDockerRunningStatus = (isRunning: boolean) => {
+  if (!selectedMinecraftDocker.value) return;
+  selectedMinecraftDocker.value.isRunning = isRunning;
 };
 </script>
 
@@ -124,27 +115,17 @@ const startMinecraftDocker = async () => {
           <SelectValue placeholder="Select a minecraft docker" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem v-for="minecraftDocker in minecraftDockers" :value="minecraftDocker.id">{{
-            minecraftDocker.name
-          }}</SelectItem>
+          <SelectItem v-for="minecraftDocker in minecraftDockers" :value="minecraftDocker.id"
+            >{{ minecraftDocker.name }}
+          </SelectItem>
         </SelectContent>
       </Select>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger>
-            <Button
-              variant="outline"
-              :disabled="!selectedMinecraftDocker"
-              @click="startMinecraftDocker"
-              ><Rocket
-            /></Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Start Minecraft Docker</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <StartStopMinecraftDockerButton
+        :minecraft-docker-id="selectedMinecraftDockerId"
+        :is-minecraft-docker-running="selectedMinecraftDocker?.isRunning"
+        @update-minecraft-docker-running-status="updateSelectedMinecraftDockerRunningStatus"
+      />
 
       <FormDialog
         title="Create Minecraft Docker"
@@ -166,6 +147,7 @@ const startMinecraftDocker = async () => {
         description="Edit your Minecraft Docker to fit your needs"
         tooltip="Edit Minecraft Docker"
         ref="editDialog"
+        :disabled="!selectedMinecraftDocker || minecraftDockers.length < 1"
       >
         <template #button-icon><Pen /></template>
         <template #form>

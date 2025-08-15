@@ -15,6 +15,7 @@ interface Props {
   title: string;
   description: string;
   tooltip: string;
+  disabled?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -30,7 +31,7 @@ defineExpose({ open });
       <TooltipTrigger>
         <Dialog v-model:open="open">
           <DialogTrigger as-child>
-            <Button><slot name="button-icon"></slot></Button>
+            <Button :disabled="props.disabled"><slot name="button-icon"></slot></Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

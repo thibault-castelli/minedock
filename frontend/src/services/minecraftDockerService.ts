@@ -28,9 +28,25 @@ const deleteMinecraftDocker = async (id: number) => {
   await apiClient.delete(minecraftDockerEndpoint + '/' + id.toString());
 };
 
+const buildAndRunMinecraftDocker = async (id: number) => {
+  const response = await apiClient.post<{ success: boolean }>(
+    minecraftDockerEndpoint + '/build-and-run/' + id.toString(),
+  );
+  return response.data.success;
+};
+
+const stopMinecraftDocker = async (id: number) => {
+  const response = await apiClient.post<{ success: boolean }>(
+    minecraftDockerEndpoint + '/stop/' + id.toString(),
+  );
+  return response.data.success;
+};
+
 export {
   getAllMinecraftDocker,
   createMinecraftDocker,
   updateMinecraftDocker,
   deleteMinecraftDocker,
+  buildAndRunMinecraftDocker,
+  stopMinecraftDocker,
 };
