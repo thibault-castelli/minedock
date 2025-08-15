@@ -25,6 +25,13 @@ const handleAxiosError = (error: any) => {
     return;
   }
 
+  // Could happen in the case of network error
+  if (!nestJsError) {
+    console.error(error);
+    toast.error('A network error happened. Please try again later');
+    return;
+  }
+
   console.error(
     `Status: ${nestJsError.statusCode}\nMessage: ${nestJsError.message}\nError: ${nestJsError.error}`,
   );
