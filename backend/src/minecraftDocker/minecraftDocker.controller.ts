@@ -37,8 +37,8 @@ export class MinecraftDockerController {
   }
 
   @Post('stop/:id')
-  stopMinecraftServer(@Param('id', ParseIntPipe) id: number) {
-    this.minecraftDockerService.stop(id);
+  async stopMinecraftServer(@Param('id', ParseIntPipe) id: number) {
+    await this.minecraftDockerService.stop(id);
     return {
       success: true,
       message: 'Minecraft server stopped',

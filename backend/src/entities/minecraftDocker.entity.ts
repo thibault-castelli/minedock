@@ -15,6 +15,9 @@ export class MinecraftDocker {
   @Column()
   name: string;
 
+  @Column({ default: false })
+  isRunning: boolean;
+
   @Column()
   memory: number;
 

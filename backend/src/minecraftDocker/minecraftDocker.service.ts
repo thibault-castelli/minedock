@@ -57,6 +57,9 @@ export class MinecraftDockerService {
       execSync('docker compose up -d', {
         cwd: join(this.dockerFilesFolder, id.toString()),
       });
+
+      minecraftDocker.isRunning = true;
+      await this.minecraftDockerRepository.update(id, minecraftDocker);
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException(
@@ -67,7 +70,7 @@ export class MinecraftDockerService {
     return minecraftDocker;
   }
 
-  stop(id: number) {
+  async stop(id: number) {
     const dockerFilePath = join(this.dockerFilesFolder, id.toString());
     if (!fs.existsSync(dockerFilePath))
       throw new NotFoundException(`MinecraftDocker with ID ${id} not found`);
@@ -76,6 +79,10 @@ export class MinecraftDockerService {
       execSync('docker compose stop', {
         cwd: dockerFilePath,
       });
+
+      const minecraftDocker = await this.findOne(id);
+      minecraftDocker.isRunning = false;
+      await this.minecraftDockerRepository.update(id, minecraftDocker);
     } catch (error) {
       console.error(error);
       throw new InternalServerErrorException(
