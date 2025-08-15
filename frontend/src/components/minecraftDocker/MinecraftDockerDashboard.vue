@@ -92,6 +92,7 @@ const deleteSelectedMinecraftDocker = async () => {
       <StartStopMinecraftDockerButton
         :minecraft-docker-id="selectedMinecraftDockerId"
         :is-minecraft-docker-running="selectedMinecraftDocker?.isRunning"
+        :minecraft-dockers="minecraftDockers"
         @on-minecraft-docker-start-or-stop="refreshMinecraftDockers"
       />
 

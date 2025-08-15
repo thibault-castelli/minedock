@@ -8,10 +8,12 @@ import {
   buildAndRunMinecraftDocker,
   stopMinecraftDocker,
 } from '@/services/minecraftDockerService.ts';
+import type { MinecraftDocker } from '@/types/minecraftDocker.ts';
 
 interface Props {
   minecraftDockerId: number;
   isMinecraftDockerRunning: boolean | undefined;
+  minecraftDockers: MinecraftDocker[];
 }
 
 const props = defineProps<Props>();
@@ -19,19 +21,35 @@ const emit = defineEmits<{
   onMinecraftDockerStartOrStop: [];
 }>();
 
-const buildAndRunSelectedMinecraftDocker = async () => {
+const validateCanBuildAndRun = async () => {
   if (props.minecraftDockerId <= 0) {
     toast.warning('Please select a Minecraft Docker');
-    return;
+    return false;
   }
 
-  toast.info('Starting Minecraft Docker...');
+  const alreadyRunningMinecraftDocker = props.minecraftDockers.find(
+    (minecraftDocker) => minecraftDocker.isRunning,
+  );
+  if (alreadyRunningMinecraftDocker) {
+    toast.warning(
+      `Please stop '${alreadyRunningMinecraftDocker.name}' Minecraft Docker before starting this one`,
+    );
+    return false;
+  }
 
   const canStartMinecraftDocker = await isDockerRunning();
   if (!canStartMinecraftDocker) {
     toast.warning('Please start Docker before starting your Minecraft Docker');
-    return;
+    return false;
   }
+
+  return true;
+};
+
+const buildAndRunSelectedMinecraftDocker = async () => {
+  if (!(await validateCanBuildAndRun())) return;
+
+  toast.info('Starting Minecraft Docker...');
 
   const buildSuccess = await buildAndRunMinecraftDocker(props.minecraftDockerId);
   if (buildSuccess) {
