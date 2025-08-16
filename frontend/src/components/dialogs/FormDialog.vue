@@ -33,12 +33,16 @@ defineExpose({ open });
           <DialogTrigger as-child>
             <Button :disabled="props.disabled"><slot name="button-icon"></slot></Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
+          <DialogContent class="grid-rows-[auto_minmax(0,1fr)_auto] p-0 max-h-[90dvh]">
+            <DialogHeader class="p-6 pb-0">
               <DialogTitle>{{ props.title }}</DialogTitle>
               <DialogDescription>{{ props.description }}</DialogDescription>
             </DialogHeader>
-            <slot name="form"></slot>
+            <div class="grid gap-4 py-4 overflow-y-auto px-6">
+              <div class="flex flex-col justify-between">
+                <slot name="form"></slot>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </TooltipTrigger>

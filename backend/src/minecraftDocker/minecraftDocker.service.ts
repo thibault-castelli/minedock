@@ -116,6 +116,14 @@ export class MinecraftDockerService {
         environment:
           EULA: "TRUE"
           MEMORY: ${minecraftDocker.memory}G
+          DIFFICULTY: ${minecraftDocker.difficulty}
+          MODE: ${minecraftDocker.mode}
+          MAX_PLAYERS: ${minecraftDocker.maxPlayers}
+          HARDCORE: ${minecraftDocker.hardcore ? 'true' : 'false'}
+          SPAWN_ANIMALS: ${minecraftDocker.spawnAnimals ? 'true' : 'false'}
+          SPAWN_MONSTERS: ${minecraftDocker.spawnMonsters ? 'true' : 'false'}
+          SPAWN_NPCS: ${minecraftDocker.spawnNpcs ? 'true' : 'false'}
+          PVP: ${minecraftDocker.pvp ? 'true' : 'false'}
     `;
 
     fs.writeFileSync(join(dockerFilePath, 'compose.yml'), dockerComposeContent);

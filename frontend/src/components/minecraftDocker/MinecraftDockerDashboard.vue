@@ -83,7 +83,10 @@ const deleteSelectedMinecraftDocker = async () => {
           <SelectValue placeholder="Select a minecraft docker" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem v-for="minecraftDocker in minecraftDockers" :value="minecraftDocker.id"
+          <SelectItem
+            v-for="minecraftDocker in minecraftDockers"
+            :value="minecraftDocker.id"
+            :key="minecraftDocker.id"
             >{{ minecraftDocker.name }}
           </SelectItem>
         </SelectContent>

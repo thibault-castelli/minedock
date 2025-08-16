@@ -1,12 +1,15 @@
 ﻿<script setup lang="ts">
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { MinecraftDocker } from '@/types/minecraftDocker.ts';
 import { useForm } from 'vee-validate';
 import { toTypedSchema } from '@vee-validate/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { createMinecraftDocker, updateMinecraftDocker } from '@/services/minecraftDockerService.ts';
+import { SelectItem } from '@/components/ui/select';
+import { capitalizeFirstLetter } from '@/utils/stringUtils.ts';
+import FormInput from '@/components/forms/FormInput.vue';
+import FormCheckbox from '@/components/forms/FormCheckbox.vue';
+import FormSelect from '@/components/forms/FormSelect.vue';
 
 interface Props {
   minecraftDocker: MinecraftDocker | undefined;
@@ -25,13 +28,31 @@ const createDefaultMinecraftDocker = (): MinecraftDocker => {
     name: 'Default Minecraft Docker',
     isRunning: false,
     memory: 4,
+    difficulty: 'normal',
+    mode: 'survival',
+    maxPlayers: 20,
+    hardcore: false,
+    spawnAnimals: true,
+    spawnMonsters: true,
+    spawnNpcs: true,
+    pvp: true,
   };
 };
 
+const difficultyTypes = ['peaceful', 'easy', 'normal', 'hard'] as const;
+const modeTypes = ['survival', 'creative'] as const;
 const formSchema = toTypedSchema(
   z.object({
     name: z.string().min(3).max(255),
     memory: z.number().int().min(1).max(16),
+    difficulty: z.enum(difficultyTypes),
+    mode: z.enum(modeTypes),
+    maxPlayers: z.number().int().min(1).max(40),
+    hardcore: z.boolean(),
+    spawnAnimals: z.boolean(),
+    spawnMonsters: z.boolean(),
+    spawnNpcs: z.boolean(),
+    pvp: z.boolean(),
   }),
 );
 
@@ -60,26 +81,47 @@ const onSubmit = form.handleSubmit(async (values) => {
 
 <template>
   <form @submit="onSubmit" class="space-y-4">
-    <FormField v-slot="{ componentField }" name="name">
-      <FormItem>
-        <FormLabel>Name</FormLabel>
-        <FormControl>
-          <Input type="text" placeholder="My Minecraft Docker" v-bind="componentField" />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+    <FormInput input-name="name" input-type="text" label="Name" placeholder="My Minecraft Docker" />
 
-    <FormField v-slot="{ componentField }" name="memory">
-      <FormItem>
-        <FormLabel>Memory (GB)</FormLabel>
-        <FormControl>
-          <Input type="number" placeholder="4" v-bind="componentField" />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+    <FormInput input-name="memory" input-type="number" label="Memory (GB)" placeholder="4" />
 
-    <Button type="submit"> Submit </Button>
+    <FormSelect input-name="difficulty" label="Difficulty" placeholder="Select a difficulty">
+      <template #select-items>
+        <SelectItem v-for="difficulty in difficultyTypes" :value="difficulty" :key="difficulty"
+          >{{ capitalizeFirstLetter(difficulty) }}
+        </SelectItem>
+      </template>
+    </FormSelect>
+
+    <FormSelect input-name="mode" label="Mode" placeholder="Select a mode">
+      <template #select-items>
+        <SelectItem v-for="mode in modeTypes" :value="mode" :key="mode"
+          >{{ capitalizeFirstLetter(mode) }}
+        </SelectItem>
+      </template>
+    </FormSelect>
+
+    <FormInput
+      input-name="maxPlayers"
+      input-type="number"
+      label="Maximum Players"
+      placeholder="20"
+    />
+
+    <FormCheckbox
+      input-name="hardcore"
+      label="Hardcore"
+      description="If set to true, players will be set to spectator mode if they die."
+    />
+
+    <FormCheckbox input-name="spawnAnimals" label="Spawn Animals" />
+
+    <FormCheckbox input-name="spawnMonsters" label="Spawn Monsters" />
+
+    <FormCheckbox input-name="spawnNpcs" label="Spawn NPCs" />
+
+    <FormCheckbox input-name="pvp" label="PvP" description="Player-vs-Player" />
+
+    <Button type="submit" class="w-full"> Submit </Button>
   </form>
 </template>
