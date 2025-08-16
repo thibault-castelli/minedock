@@ -132,7 +132,7 @@ const deleteSelectedMinecraftDocker = async () => {
 
       <ConfirmDeleteDialog
         title="Delete Minecraft Docker"
-        :description="`Are you sure you want to delete ${selectedMinecraftDocker?.name} Minecraft Docker?`"
+        :description="`Are you sure you want to delete '${selectedMinecraftDocker?.name}' Minecraft Docker?`"
         tooltip="Delete Selected Minecraft Docker"
         :is-button-disabled="!selectedMinecraftDocker || minecraftDockers.length < 1"
         @on-delete="deleteSelectedMinecraftDocker"
