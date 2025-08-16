@@ -4,7 +4,7 @@ import SuspenseSkeleton from '@/components/SuspenseSkeleton.vue';
 </script>
 
 <template>
-  <h2 class="mb-4 text-2xl">Minecraft Dockers</h2>
+  <h1 class="mb-4 text-2xl">Minedock</h1>
 
   <Suspense>
     <MinecraftDockerDashboard />
