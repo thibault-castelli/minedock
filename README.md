@@ -23,14 +23,14 @@ Create a local Minecraft server easily with Minedock and Docker Desktop!
 
 # Start app
 ```
-cd frontend
-npm install
-npm run dev
-```
-```
 cd backend
 npm install
 npm run start
+```
+```
+cd frontend
+npm install
+npm run dev
 ```
 
 ## Visuals
